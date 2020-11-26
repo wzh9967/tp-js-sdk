@@ -1,801 +1,315 @@
-var Promise = require('promise');
-
-var TYPE_MAP = {
-    eth: '1',
-    jingtum: '2',
-    moac: '3',
-    eos: '4',
-    enu: '5',
-    bos: '6',
-    iost: '7',
-    cosmos: '8',
-    binance: '9',
-    tron: '10'
-};
-
-var BLOCKCHAIN_ID_MAP = {
-    '1': 'eth',
-    '2': 'jingtum',
-    '3': 'moac',
-    '4': 'eos',
-    '5': 'enu',
-    '6': 'bos',
-    '7': 'iost',
-    '8': 'cosmos',
-    '9': 'binance',
-    '10': 'tron'
-}
-
-var _getTypeByStr = function (typeStr) {
-    var reTrim = /^\s+|\s+$/g;
-    typeStr += '';
-    typeStr = typeStr.replace(reTrim, '').toLowerCase();
-    return TYPE_MAP[typeStr] || typeStr;
-}
-
-var _getCallbackName = function () {
-    var ramdom = parseInt(Math.random() * 100000);
-    return 'tp_callback_' + new Date().getTime() + ramdom;
-}
-
-
-var _sendTpRequest = function (methodName, params, callback) {
-    if (window.TPJSBrigeClient) {
-        window.TPJSBrigeClient.callMessage(methodName, params, callback);
-    }
-    // ios
-    if (window.webkit) {
-        window.webkit.messageHandlers[methodName].postMessage({
-            body: {
-                'params': params,
-                'callback': callback
-            }
-        });
-    }
-}
-
-var tp = {
-    version: '3.3.0',
-    isConnected: function () {
-        return !!(window.TPJSBrigeClient || (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.getDeviceId));
-    },
-    invokeQRScanner: function () {
+//获取app版本
+let Promise = require('promise');
+let dappApi = {
+    version: '0.1.0',
+    getAppInfo : function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
-                    var data = res.qrResult || '';
-                    resolve(data);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('invokeQRScanner', '', tpCallbackFun);
-
-        });
-    },
-    shareNewsToSNS: function (params) {
-        var title = params.title || 'TokenPocket 你的通用数字钱包';
-        var description = params.desc || '';
-        var url = params.url || 'https://www.mytokenpocket.vip/';
-        var previewImage = params.previewImage || '';
-
-
-        var data = {
-            title: title,
-            description: description,
-            url: url,
-            previewImage: previewImage
-        };
-
-        _sendTpRequest('shareNewsToSNS', JSON.stringify(data), '');
-
-    },
-    getAppInfo: function () {
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
             _sendTpRequest('getAppInfo', '', tpCallbackFun);
-
-        });
+        })
     },
-    getDeviceId: function () {
+
+    //获取钱包列表
+    getWalletList : function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
-                    if (res.device_id) {
-                        res.data = res.device_id;
-                    }
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('getDeviceId', '', tpCallbackFun);
-
-        });
-
+            _sendTpRequest('getWalletList', '', tpCallbackFun);
+        })
     },
-    // Deprecated
-    getWalletList: function (type) {
-        type = _getTypeByStr(type);
 
-        if (!type) {
-            throw new Error('type invalid');
-        }
-
-        var params = {
-            type: type
-        };
-
+    //获取设备信息
+    getDevice : function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-            _sendTpRequest('getWalletList', JSON.stringify(params), tpCallbackFun);
-
-        });
+            _sendTpRequest('getDevice', '', tpCallbackFun);
+        })
     },
-    getWallets: function () {
+
+    //分享
+    shareToSNS:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
-
-                    if (res.data && res.data.length) {
-                        for (var i = 0; i < res.data.length; i++) {
-                            res.data[i].blockchain = BLOCKCHAIN_ID_MAP[res.data[i].blockchain_id + ''] || res.data[i].blockchain_id;
-                        }
-                    }
-
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('getWallets', '', tpCallbackFun);
-
-        });
+            _sendTpRequest('shareToSNS', '', tpCallbackFun);
+        })
     },
-    getCurrentWallet: function () {
+
+    //开启扫描
+    invokeQRScanner:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-            // callback
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
-                    if (res.rawTransaction) {
-                        res.data = res.rawTransaction;
-                    }
+                    let res = JSON.parse(result);
+                    resolve(res);
+                } catch (e) {
+                    reject(e);
+                }
+            }
+            _sendTpRequest('invokeQRScanner', '', tpCallbackFun);
+        })
+    },
 
-                    if (res.data && res.data.blockchain_id) {
-                        res.data.blockchain = BLOCKCHAIN_ID_MAP[res.data.blockchain_id + ''] || res.data.blockchain_id;
-                    }
-
+    //获取当前交易钱包
+    getCurrentWallet:function (callback){
+        return new Promise(function (resolve, reject) {
+            var tpCallbackFun = _getCallbackName();
+            window[tpCallbackFun] = function (result) {
+                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
+                try {
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
             _sendTpRequest('getCurrentWallet', '', tpCallbackFun);
-        });
-    },
-    sign: function (params) {
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('sign', JSON.stringify(params), tpCallbackFun);
-        });
-    },
-    back: function () {
-        _sendTpRequest('back', '', '');
-    },
-    fullScreen: function (params) {
-        _sendTpRequest('fullScreen', JSON.stringify(params), '');
-    },
-    setMenubar: function (params) {
-        _sendTpRequest('setMenubar', JSON.stringify(params), '');
-    },
-    close: function () {
-        _sendTpRequest('close', '', '');
-    },
-    importWallet: function (type) {
-        type = _getTypeByStr(type);
-
-        if (!type) {
-            throw new Error('type invalid');
-        }
-
-        var params = {
-            blockChainId: type
-        };
-
-        _sendTpRequest('importWallet', JSON.stringify(params), '');
-    },
-    startChat: function (params) {
-        if (params.blockchain) {
-            params.blockChainId = _getTypeByStr(params.blockchain);
-            delete params.blockchain;
-        }
-        _sendTpRequest('startChat', JSON.stringify(params), '');
-    },
-    getNodeUrl: function (params) {
-
-        if (params.blockchain) {
-            params.blockChainId = _getTypeByStr(params.blockchain);
-            delete params.blockchain;
-        }
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-
-                    var res = JSON.parse(result);
-
-                    if (res.data && res.data.blockChainId) {
-                        res.blockchain = BLOCKCHAIN_ID_MAP[res.data.blockChainId + ''] || res.data.blockChainId;
-                    }
-
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-            _sendTpRequest('getNodeUrl', JSON.stringify(params), tpCallbackFun);
-
-        });
-
-
-
-    },
-    saveImage: function (params) {
-        _sendTpRequest('saveImage', JSON.stringify(params), '');
-    },
-    rollHorizontal: function (params) {
-        _sendTpRequest('rollHorizontal', JSON.stringify(params), '');
-    },
-    popGestureRecognizerEnable: function (params) {
-        _sendTpRequest('popGestureRecognizerEnable', JSON.stringify(params), '');
-    },
-    forwardNavigationGesturesEnable: function (params) {
-        _sendTpRequest('forwardNavigationGesturesEnable', JSON.stringify(params), '');
-    },
-    // eos
-    eosTokenTransfer: function (params) {
-        // 必填项
-        if (!params.from || !params.to || !params.amount || !params.contract || !params.precision) {
-            throw new Error('missing params; "from", "to", "amount", "contract", "precision" is required ');
-        }
-
-        params.amount = '' + params.amount;
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-
-                    if (res.result && !res.data.transactionId) {
-                        res.data = {
-                            transactionId: res.data
-                        };
-                    }
-
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('eosTokenTransfer', JSON.stringify(params), tpCallbackFun);
         })
     },
-    pushEosAction: function (params) {
+
+    //交易签名
+    sign:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
-                    if (res.result && !res.data.transactionId) {
-                        res.data = {
-                            transactionId: res.data
-                        };
-                    }
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('pushEosAction', JSON.stringify(params), tpCallbackFun);
-
-        });
-    },
-    getEosBalance: function (params) {
-
-        if (!params.account || !params.contract || !params.symbol) {
-            throw new Error('missing params; "account", "contract", "symbol" is required ');
-        }
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('getEosBalance', JSON.stringify(params), tpCallbackFun);
-
-        });
-    },
-    getTableRows: function (params) {
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('getTableRows', JSON.stringify(params), tpCallbackFun);
-        });
-    },
-    getEosTableRows: function (params) {
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('getEosTableRows', JSON.stringify(params), tpCallbackFun);
-        });
-    },
-    getEosAccountInfo: function (params) {
-        if (!params.account) {
-            throw new Error('missing params; "account" is required ');
-        }
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('getEosAccountInfo', JSON.stringify(params), tpCallbackFun);
-
-        });
-    },
-    getEosTransactionRecord: function (params) {
-        // 必填项
-        if (!params.account) {
-            throw new Error('missing params; "account" is required ');
-        }
-
-        params.count = params.count ? +params.count : 10;
-        params.start = params.start ? +params.start : 0;
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('getEosTransactionRecord', JSON.stringify(params), tpCallbackFun);
-
+            _sendTpRequest('sign', '', tpCallbackFun);
         })
     },
-    eosAuthSign: function (params) {
+
+    //从浏览器返回
+    back:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('eosAuthSign', JSON.stringify(params), tpCallbackFun);
-        });
-    },
-
-    // enu
-    enuTokenTransfer: function (params) {
-        // 必填项
-        if (!params.from || !params.to || !params.amount || !params.tokenName || !params.contract || !params.precision) {
-            throw new Error('missing params; "from", "to", "amount", "tokenName","contract", "precision" is required ');
-        }
-
-        params.amount = '' + params.amount;
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-
-                    if (res.result && !res.data.transactionId) {
-                        res.data = {
-                            transactionId: res.data
-                        };
-                    }
-
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-            _sendTpRequest('enuTokenTransfer', JSON.stringify(params), tpCallbackFun);
-
-
+            _sendTpRequest('back', '', tpCallbackFun);
         })
     },
-    pushEnuAction: function (params) {
+
+    //关闭浏览器
+    close:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
-                    if (res.result && !res.data.transactionId) {
-                        res.data = {
-                            transactionId: res.data
-                        };
-                    }
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('pushEnuAction', JSON.stringify(params), tpCallbackFun);
-
-        });
-    },
-    getEnuBalance: function (params) {
-
-        if (!params.account || !params.contract || !params.symbol) {
-            throw new Error('missing params; "account", "contract", "symbol" is required ');
-        }
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-            _sendTpRequest('getEnuBalance', JSON.stringify(params), tpCallbackFun);
-        });
-
-
-    },
-    getEnuTableRows: function (params) {
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('getEnuTableRows', JSON.stringify(params), tpCallbackFun);
-        });
-    },
-    getEnuAccountInfo: function (params) {
-        if (!params.account) {
-            throw new Error('missing params; "account" is required ');
-        }
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-            _sendTpRequest('getEnuAccountInfo', JSON.stringify(params), tpCallbackFun);
-        });
-    },
-    getEnuTransactionRecord: function (params) {
-        // 必填项
-        if (!params.account) {
-            throw new Error('missing params; "account" is required ');
-        }
-
-        params.count = params.count ? +params.count : 10;
-        params.start = params.start ? +params.start : 0;
-
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('getEnuTransactionRecord', JSON.stringify(params), tpCallbackFun);
-
+            _sendTpRequest('close', '', tpCallbackFun);
         })
     },
-    // eth moac
-    pushMoacTransaction: function (params) {
+
+
+    //浏览器全屏
+    fullScreen:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('pushMoacTransaction', JSON.stringify(params), tpCallbackFun);
-        });
+            _sendTpRequest('fullScreen', '', tpCallbackFun);
+        })
     },
-    moacTokenTransfer: function (params) {
 
-        if (!params.from || !params.to || !params.amount || !params.gasLimit || !params.tokenName) {
-            throw new Error('missing params; "from", "to", "amount", "gasLimit", "tokenName" is required ');
-        }
-
-        if (params.contract && !params.decimal) {
-            throw new Error('missing params; "decimal" is required ');
-        }
-
+    //跳转到钱包导入页面
+    importWallet:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-            _sendTpRequest('moacTokenTransfer', JSON.stringify(params), tpCallbackFun);
-
-
-        });
-
+            _sendTpRequest('importWallet', '', tpCallbackFun);
+        })
     },
-    sendMoacTransaction: function (params) {
+
+    //导航条可见
+    setMenubar:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('sendMoacTransaction', JSON.stringify(params), tpCallbackFun);
-        });
+            _sendTpRequest('setMenubar', '', tpCallbackFun);
+        })
     },
-    sendEthTransaction: function (params) {
+
+
+    //保存图片
+    saveImage:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('sendEthTransaction', JSON.stringify(params), tpCallbackFun);
-        });
+            _sendTpRequest('saveImage', '', tpCallbackFun);
+        })
     },
-    signMoacTransaction: function (params) {
+
+
+    //横屏
+    rollHorizontal:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('signMoacTransaction', JSON.stringify(params), tpCallbackFun);
-        });
+            _sendTpRequest('rollHorizontal', '', tpCallbackFun);
+        })
     },
-    signEthTransaction: function (params) {
+
+    //禁止iOS自带的左滑手势返回，对安卓无影响
+    popGestureRecognizerEnable:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('signEthTransaction', JSON.stringify(params), tpCallbackFun);
-        });
+            _sendTpRequest('popGestureRecognizerEnable', '', tpCallbackFun);
+        })
     },
-    signCosmosTransaction: function (params) {
+
+
+
+//禁止webview自带的左滑手势触发goback
+    forwardNavigationGesturesEnable:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('signCosmosTransaction', JSON.stringify(params), tpCallbackFun);
-        });
+            _sendTpRequest('forwardNavigationGesturesEnable', '', tpCallbackFun);
+        })
     },
-    cosmosArbitrarySignature: function (pb, data) {
-        var params = {
-            address: pb,
-            data: data
-        }
+
+//获取当前节点
+    getNodeUrl:function (callback){
         return new Promise(function (resolve, reject) {
             var tpCallbackFun = _getCallbackName();
-
             window[tpCallbackFun] = function (result) {
                 result = result.replace(/\r/ig, "").replace(/\n/ig, "");
                 try {
-                    var res = JSON.parse(result);
+                    let res = JSON.parse(result);
                     resolve(res);
                 } catch (e) {
                     reject(e);
                 }
             }
-
-            _sendTpRequest('cosmosArbitrarySignature', JSON.stringify(params), tpCallbackFun);
-        });
-    },
-    signJingtumTransaction: function (params) {
-        return new Promise(function (resolve, reject) {
-            var tpCallbackFun = _getCallbackName();
-
-            window[tpCallbackFun] = function (result) {
-                result = result.replace(/\r/ig, "").replace(/\n/ig, "");
-                try {
-                    var res = JSON.parse(result);
-                    resolve(res);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-
-            _sendTpRequest('signJingtumTransaction', JSON.stringify(params), tpCallbackFun);
-        });
+            _sendTpRequest('getNodeUrl', '', tpCallbackFun);
+        })
     }
-};
+}
 
+function _getCallbackName() {
+    var ramdom = parseInt(Math.random() * 100000);
+    return 'tp_callback_' + new Date().getTime() + ramdom;
+}
 
-module.exports = tp;
+function _sendTpRequest (methodName, params, callback) {
+    if (window.JsNativeBridge) {
+        window.JsNativeBridge.callHandler(methodName, params, callback);
+    }
+}
+
+function _getTypeByStr (typeStr) {
+    var reTrim = /^\s+|\s+$/g;
+    typeStr += '';
+    typeStr = typeStr.replace(reTrim, '').toLowerCase();
+    return TYPE_MAP[typeStr] || typeStr;
+}
